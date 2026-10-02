@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "hu.bme.student.auction"
-version = "0.0.1-SNAPSHOT"
+version = "0.0.2"
 
 java {
 	toolchain {
@@ -22,6 +22,7 @@ repositories {
 dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("org.springframework.boot:spring-boot-starter-security")
+	implementation("org.springframework.boot:spring-boot-starter-validation")
 	implementation("org.springframework.boot:spring-boot-starter-webmvc")
 	implementation("org.springframework.boot:spring-boot-starter-websocket")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
@@ -33,6 +34,12 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-websocket-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+	// sec
+	implementation(libs.jjwt.api)
+	runtimeOnly(libs.jjwt.impl)
+	runtimeOnly(libs.jjwt.jackson)
+
 }
 
 kotlin {
