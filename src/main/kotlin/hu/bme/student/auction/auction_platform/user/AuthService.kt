@@ -50,7 +50,7 @@ class AuthService(
         )
 
         val user = userRepository.findByEmail(normalizedEmail)
-            .orElseThrow { IllegalStateException("Authenticated user not found in database") }
+            ?: throw IllegalStateException("Authenticated user not found in database")
 
         val token = jwtService.generateToken(user)
 
