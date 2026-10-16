@@ -9,12 +9,21 @@ import org.springframework.transaction.annotation.Transactional
 import java.util.NoSuchElementException
 import java.util.UUID
 
+import org.slf4j.LoggerFactory
+import org.springframework.transaction.annotation.Propagation
+import java.math.BigDecimal
+import java.time.Instant
+
 @Service
 @Transactional(readOnly = true)
 class AuctionService(
     private val auctionRepository: AuctionRepository,
     private val userRepository: UserRepository
 ) {
+
+    companion object {
+        private val logger = LoggerFactory.getLogger(AuctionService::class.java)
+    }
 
     @Transactional
     fun createAuction(request: CreateAuctionRequest, sellerEmail: String): AuctionResponse {
@@ -69,5 +78,41 @@ class AuctionService(
 
         auction.status = AuctionStatus.CANCELLED
         return AuctionResponse.fromEntity(auction)
+    }
+
+    fun findExpiredAuctionIds(): List<UUID> {
+        return auctionRepository.findExpiredAuctions(
+            status = AuctionStatus.ACTIVE,
+            cutoff = Instant.now()
+        ).mapNotNull { it.id }
+    }
+
+    // Isolated transaction
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    fun closeAuction(auctionId: UUID) {
+        val auction = auctionRepository.findById(auctionId).orElse(null) ?: return
+
+        if (auction.status != AuctionStatus.ACTIVE) {
+            return
+        }
+
+        if (auction.endTime.isAfter(Instant.now())) {
+            return
+        }
+
+        auction.status = AuctionStatus.ENDED
+        auctionRepository.save(auction)
+
+        val reserveMet = auction.reservePrice?.let { reserve ->
+            (auction.currentHighestBid ?: BigDecimal.ZERO) >= reserve
+        } ?: true
+
+        if (auction.currentHighestBid != null && reserveMet) {
+            logger.info("Auction {} closed successfully. Winning bid: {}", auction.id, auction.currentHighestBid)
+            // Hook for Bidding/WebSocket: broadcast AuctionEndedEvent(winner, finalPrice)
+        } else {
+            logger.info("Auction {} ended with no winner (reserve not met or no bids placed).", auction.id)
+            // Hook for Bidding/WebSocket: broadcast AuctionUnsoldEvent()
+        }
     }
 }
