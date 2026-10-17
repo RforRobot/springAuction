@@ -17,6 +17,7 @@ import java.util.UUID
 class Auction(
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", updatable = false, nullable = false)
     val id: UUID? = null,
 
     @Column(nullable = false, length = 150)
@@ -25,7 +26,7 @@ class Auction(
     @Column(nullable = false, columnDefinition = "TEXT")
     var description: String,
 
-    @Column(name = "starting_price", nullable = false, precision = 19, scale = 4)
+    @Column(name = "starting_price", updatable = false, nullable = false, precision = 19, scale = 4)
     val startingPrice: BigDecimal,
 
     @Column(name = "reserve_price", precision = 19, scale = 4)
@@ -38,14 +39,14 @@ class Auction(
     @Column(nullable = false, length = 20)
     var status: AuctionStatus = AuctionStatus.ACTIVE,
 
-    @Column(name = "start_time", nullable = false)
+    @Column(name = "start_time", updatable = false, nullable = false)
     val startTime: Instant = Instant.now(),
 
     @Column(name = "end_time", nullable = false)
     var endTime: Instant,
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "seller_id", nullable = false)
+    @JoinColumn(name = "seller_id", updatable = false, nullable = false)
     val seller: User,
 
     @Version
