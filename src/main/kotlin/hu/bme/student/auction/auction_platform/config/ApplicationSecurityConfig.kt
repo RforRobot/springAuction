@@ -18,7 +18,7 @@ class ApplicationSecurityConfig(
     @Bean
     fun userDetailsService(): UserDetailsService = UserDetailsService { username ->
         userRepository.findByEmail(username)
-            .orElseThrow { UsernameNotFoundException("User not found with email: $username") }
+            ?: throw UsernameNotFoundException("User not found with email: $username")
     }
 
     @Bean

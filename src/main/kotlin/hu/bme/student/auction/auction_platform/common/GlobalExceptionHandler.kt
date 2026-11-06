@@ -1,63 +1,48 @@
 package hu.bme.student.auction.auction_platform.common
 
 import jakarta.servlet.http.HttpServletRequest
+import org.springframework.core.Ordered
+import org.springframework.core.annotation.Order
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.security.authentication.BadCredentialsException
-import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.validation.FieldError
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 
 @RestControllerAdvice
-class GlobalExceptionHandler {
+@Order(Ordered.LOWEST_PRECEDENCE)
+class GlobalExceptionHandler : BaseExceptionHandler() {
 
     @ExceptionHandler(MethodArgumentNotValidException::class)
-    fun handleValidationExceptions(ex: MethodArgumentNotValidException): ResponseEntity<ErrorResponse> {
+    fun handleValidationException(
+        ex: MethodArgumentNotValidException,
+        request: HttpServletRequest
+    ): ResponseEntity<ErrorResponse> {
         val fieldErrors = ex.bindingResult.allErrors.associate { error ->
             val fieldName = (error as? FieldError)?.field ?: error.objectName
             val message = error.defaultMessage ?: "Validation failed"
             fieldName to message
         }
 
-        val response = ErrorResponse(
-            status = HttpStatus.BAD_REQUEST.value(),
-            error = HttpStatus.BAD_REQUEST.reasonPhrase,
+        return buildResponse(
+            status = HttpStatus.BAD_REQUEST,
             message = "Validation failed for one or more fields",
+            request = request,
             validationErrors = fieldErrors
         )
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response)
     }
 
     @ExceptionHandler(IllegalArgumentException::class)
-    fun handleIllegalArgumentException(ex: IllegalArgumentException): ResponseEntity<ErrorResponse> {
-        val response = ErrorResponse(
-            status = HttpStatus.BAD_REQUEST.value(),
-            error = HttpStatus.BAD_REQUEST.reasonPhrase,
-            message = ex.message ?: "Invalid request argument"
+    fun handleIllegalArgumentException(
+        ex: IllegalArgumentException,
+        request: HttpServletRequest
+    ): ResponseEntity<ErrorResponse> {
+        return buildResponse(
+            status = HttpStatus.BAD_REQUEST,
+            message = ex.message ?: "Invalid request argument",
+            request = request
         )
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response)
-    }
-
-    @ExceptionHandler(BadCredentialsException::class, UsernameNotFoundException::class)
-    fun handleAuthenticationExceptions(ex: Exception): ResponseEntity<ErrorResponse> {
-        val response = ErrorResponse(
-            status = HttpStatus.UNAUTHORIZED.value(),
-            error = HttpStatus.UNAUTHORIZED.reasonPhrase,
-            message = "Invalid email or password"
-        )
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response)
-    }
-
-    @ExceptionHandler(Exception::class)
-    fun handleGeneralException(ex: Exception): ResponseEntity<ErrorResponse> {
-        val response = ErrorResponse(
-            status = HttpStatus.INTERNAL_SERVER_ERROR.value(),
-            error = HttpStatus.INTERNAL_SERVER_ERROR.reasonPhrase,
-            message = ex.message ?: "An unexpected error occurred"
-        )
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response)
     }
 
     @ExceptionHandler(ResourceNotFoundException::class)
@@ -65,12 +50,22 @@ class GlobalExceptionHandler {
         ex: ResourceNotFoundException,
         request: HttpServletRequest
     ): ResponseEntity<ErrorResponse> {
-        val errorResponse = ErrorResponse(
-            status = HttpStatus.NOT_FOUND.value(),
-            error = HttpStatus.NOT_FOUND.reasonPhrase,
+        return buildResponse(
+            status = HttpStatus.NOT_FOUND,
             message = ex.message ?: "Resource not found",
-            path = request.requestURI
+            request = request
         )
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse)
+    }
+
+    @ExceptionHandler(Exception::class)
+    fun handleGeneralException(
+        ex: Exception,
+        request: HttpServletRequest
+    ): ResponseEntity<ErrorResponse> {
+        return buildResponse(
+            status = HttpStatus.INTERNAL_SERVER_ERROR,
+            message = ex.message ?: "An unexpected error occurred",
+            request = request
+        )
     }
 }

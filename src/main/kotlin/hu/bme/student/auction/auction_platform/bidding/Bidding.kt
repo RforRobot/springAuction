@@ -41,7 +41,3 @@ data class BidBroadcastPayload(
     val bidId: UUID,
     val timestamp: Instant
 )
-
-class AuctionNotActiveException(message: String) : RuntimeException(message)
-class InvalidBidException(message: String) : RuntimeException(message)
-class SelfBiddingProhibitedException(message: String) : RuntimeException(message)
